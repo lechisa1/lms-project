@@ -1,0 +1,324 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for type safety
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // 'ADMIN', 'INSTRUCTOR', 'STUDENT'
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  avatar      String? // URL to profile picture
+  bio         String?   @db.Text
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+
+  // Relations
+  roleId Int
+  role   Role @relation(fields: [roleId], references: [id])
+
+  // As Student
+  enrollments    Enrollment[]
+  quizAttempts   QuizAttempt[]
+  lessonProgress LessonProgress[]
+
+  // As Instructor
+  coursesCreated Course[] @relation("InstructorCourses")
+  lessonsCreated Lesson[] @relation("InstructorLessons")
+
+  // Notifications
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([roleId])
+}
+
+model Course {
+  id          String @id @default(cuid())
+  title       String
+  description String @db.Text
+
+  duration    Int? // Duration in hours
+  thumbnail   String? // URL to course thumbnail
+  price       Float?  @default(0)
+  isPublished Boolean @default(false)
+
+  // Relations
+  instructorId String
+  instructor   User   @relation("InstructorCourses", fields: [instructorId], references: [id])
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  categoryId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  category    Category?    @relation(fields: [categoryId], references: [id])
+
+  @@index([instructorId])
+  @@index([categoryId])
+  @@index([isPublished])
+}
+
+model Lesson {
+  id          String  @id @default(cuid())
+  title       String
+  description String  @db.Text
+  content     String? @db.Text // HTML/text content
+  order       Int // Lesson order in course
+  duration    Int? // Duration in minutes
+  isPublished Boolean @default(false)
+
+  // Relations
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+
+  instructorId String
+  instructor   User   @relation("InstructorLessons", fields: [instructorId], references: [id])
+
+  resources Resource[]
+  quizzes   Quiz[]
+  progress  LessonProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, order]) // Ensures unique order per course
+  @@index([courseId])
+  @@index([instructorId])
+}
+
+model Resource {
+  id       String  @id @default(cuid())
+  title    String
+  type     String // 'PDF', 'VIDEO', 'AUDIO', 'DOCUMENT', etc.
+  url      String // URL to the file (S3/local storage)
+  fileSize Int? // Size in bytes
+  mimeType String?
+
+  // Relations
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  status      String    @default("ACTIVE") // 'ACTIVE', 'COMPLETED', 'DROPPED'
+
+  // Relations
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id])
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+
+  progress ProgressSummary?
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lessonProgresses LessonProgress[]
+
+  @@unique([studentId, courseId]) // Prevent duplicate enrollments
+  @@index([studentId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model ProgressSummary {
+  id               String @id @default(cuid())
+  totalLessons     Int    @default(0)
+  completedLessons Int    @default(0)
+  progressPercent  Float  @default(0)
+
+  // Relations
+  enrollmentId String     @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  lastAccessedAt DateTime?
+  completedAt    DateTime?
+
+  updatedAt DateTime @updatedAt
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  // Relations
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id])
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, lessonId])
+  @@index([studentId])
+  @@index([lessonId])
+  @@index([enrollmentId])
+}
+
+model Quiz {
+  id           String  @id @default(cuid())
+  title        String
+  description  String? @db.Text
+  timeLimit    Int? // Time limit in minutes
+  passingScore Int     @default(70) // Percentage to pass
+  maxAttempts  Int     @default(3)
+
+  // Relations
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
+}
+
+model Question {
+  id     String @id @default(cuid())
+  text   String @db.Text
+  type   String @default("MULTIPLE_CHOICE") // 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER'
+  points Int    @default(1)
+  order  Int
+
+  // Relations
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id])
+
+  options QuestionOption[]
+  answers StudentAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([quizId])
+}
+
+model QuestionOption {
+  id        String  @id @default(cuid())
+  text      String  @db.Text
+  isCorrect Boolean @default(false)
+  order     Int
+
+  // Relations
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  score       Float? // Percentage score
+  passed      Boolean?  @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  // Relations
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id])
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id])
+
+  answers StudentAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, quizId, startedAt]) // Ensure unique attempt per start time
+  @@index([studentId])
+  @@index([quizId])
+}
+
+model StudentAnswer {
+  id     String @id @default(cuid())
+  answer String @db.Text // Could be option ID(s) or text
+
+  // Relations
+  attemptId String
+  attempt   QuizAttempt @relation(fields: [attemptId], references: [id])
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+
+  isCorrect Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model Notification {
+  id      String  @id @default(cuid())
+  title   String
+  message String  @db.Text
+  type    String // 'COURSE', 'LESSON', 'QUIZ', 'SYSTEM'
+  isRead  Boolean @default(false)
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  metadata Json? // Additional data like courseId, lessonId, etc.
+
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String? @db.Text
+
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,64 @@
+# ==============================
+# Node.js
+# ==============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================
+# Build output
+# ==============================
+dist/
+build/
+coverage/
+
+# ==============================
+# Environment variables
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Logs
+# ==============================
+logs/
+*.log
+
+# ==============================
+# OS files
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# IDEs & Editors
+# ==============================
+.vscode/
+.idea/
+*.swp
+
+# ==============================
+# Prisma
+# ==============================
+prisma/migrations/
+# (optional: keep if you want versioned migrations)
+# If working in team → REMOVE this line
+
+# ==============================
+# Docker
+# ==============================
+docker-compose.override.yml
+
+# ==============================
+# Uploads (multer)
+# ==============================
+uploads/
+
+# ==============================
+# Temporary files
+# ==============================
+tmp/
+temp/

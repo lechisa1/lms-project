@@ -1,0 +1,34 @@
+Authentication Endpoints
+        POST /auth/register - Register new user (default role: STUDENT)
+
+        POST /auth/login - Login user
+
+        POST /auth/refresh - Refresh access token
+
+        GET /auth/profile - Get current user profile (protected)
+
+
+User Management Endpoints (Protected)
+        POST /users - Create user (Admin only)
+
+        GET /users - Get all users (Admin only)
+
+        GET /users/instructors - Get all instructors
+
+        GET /users/students - Get all students
+
+        GET /users/profile - Get own profile
+
+        PATCH /users/profile - Update own profile
+
+        POST /users/profile/avatar - Upload avatar
+
+        POST /users/profile/change-password - Change password
+
+        GET /users/role/:roleId - Get users by role (Admin only)
+
+        GET /users/:id - Get user by ID (Admin only)
+
+        PATCH /users/:id - Update user (Admin only)
+
+        DELETE /users/:id - Delete user (Admin only)        
