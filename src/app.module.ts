@@ -12,6 +12,9 @@ import { LessonsModule } from './lessons/lessons.module';
 import { ResourcesModule } from './resources/resources.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { CategoriesModule } from './categories/categories.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
+import { CertificatesModule } from './certificates/certificates.module';
+import { SearchModule } from './search/search.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,6 +30,9 @@ import { CategoriesModule } from './categories/categories.module';
     ResourcesModule,
     EnrollmentsModule,
     CategoriesModule,
+    QuizzesModule,
+    CertificatesModule,
+    SearchModule,
   ],
   controllers: [],
   providers: [PrismaService],

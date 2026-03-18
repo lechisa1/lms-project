@@ -1,5 +1,5 @@
 Authentication Endpoints
-        POST /auth/register - Register new user (default role: STUDENT)
+POST /auth/register - Register new user (default role: STUDENT)
 
         POST /auth/login - Login user
 
@@ -7,9 +7,8 @@ Authentication Endpoints
 
         GET /auth/profile - Get current user profile (protected)
 
-
 User Management Endpoints (Protected)
-        POST /users - Create user (Admin only)
+POST /users - Create user (Admin only)
 
         GET /users - Get all users (Admin only)
 
@@ -31,11 +30,10 @@ User Management Endpoints (Protected)
 
         PATCH /users/:id - Update user (Admin only)
 
-        DELETE /users/:id - Delete user (Admin only)      
-
+        DELETE /users/:id - Delete user (Admin only)
 
 Course Endpoints
-                POST /courses - Create course (Instructor/Admin)
+POST /courses - Create course (Instructor/Admin)
 
                 GET /courses - Get all courses (public: published only, auth: all)
 
@@ -55,11 +53,10 @@ Course Endpoints
 
                 POST /courses/:id/unpublish - Unpublish course (Instructor/Admin)
 
-                POST /courses/:id/thumbnail - Upload thumbnail (Instructor/Admin)  
-
+                POST /courses/:id/thumbnail - Upload thumbnail (Instructor/Admin)
 
 Lesson Endpoints
-                POST /courses/:courseId/lessons - Create lesson (Instructor/Admin)
+POST /courses/:courseId/lessons - Create lesson (Instructor/Admin)
 
                 GET /courses/:courseId/lessons - Get course lessons
 
@@ -71,23 +68,17 @@ Lesson Endpoints
 
                 POST /courses/:courseId/lessons/reorder - Reorder lessons (Instructor/Admin)
 
-
-
 Resource Endpoints
-                POST /lessons/:lessonId/resources - Upload resource (Instructor/Admin)
+POST /lessons/:lessonId/resources - Upload resource (Instructor/Admin)
 
                 GET /lessons/:lessonId/resources - Get lesson resources
 
                 GET /lessons/:lessonId/resources/:id - Get resource details
 
-                DELETE /lessons/:lessonId/resources/:id - Delete resource (Instructor/Admin)                
-
-
-
-
+                DELETE /lessons/:lessonId/resources/:id - Delete resource (Instructor/Admin)
 
 Enrollment Endpoints
-                POST /enrollments - Enroll in a course (Student only)
+POST /enrollments - Enroll in a course (Student only)
 
                 GET /enrollments - Get all enrollments (role-based filtering)
 
@@ -112,3 +103,64 @@ Enrollment Endpoints
                 PATCH /enrollments/:id/status - Update enrollment status (Admin/Instructor)
 
                 DELETE /enrollments/:id - Delete enrollment (Admin only)
+
+Quiz Management
+POST /quizzes/lessons/:lessonId - Create quiz (Instructor/Admin)
+
+                GET /quizzes/lessons/:lessonId - Get lesson quizzes
+
+                GET /quizzes/:id - Get quiz details
+
+                PATCH /quizzes/:id - Update quiz (Instructor/Admin)
+
+                DELETE /quizzes/:id - Delete quiz (Instructor/Admin)
+
+Question Management
+POST /quizzes/:quizId/questions - Add question (Instructor/Admin)
+
+                POST /quizzes/:quizId/questions/bulk - Add multiple questions
+
+                PATCH /quizzes/questions/:questionId - Update question
+
+                DELETE /quizzes/questions/:questionId - Delete question
+
+Quiz Attempts
+POST /quizzes/:quizId/attempts/start - Start quiz attempt (Student)
+
+                POST /quizzes/attempts/:attemptId/submit - Submit answers
+
+                GET /quizzes/attempts/:attemptId/result - Get attempt result
+
+                GET /quizzes/students/:studentId/history - Get student's quiz history
+
+Certificate Module
+POST /certificates/generate - Generate certificate (Student)
+
+                GET /certificates - Get all certificates (role-based)
+
+                GET /certificates/my-certificates - Get my certificates (Student)
+
+                GET /certificates/student/:studentId - Get student certificates (Admin/Instructor)
+
+                GET /certificates/stats - Get certificate statistics
+
+                GET /certificates/verify/:certificateNo - Verify certificate (Public)
+
+                GET /certificates/:id - Get certificate details
+
+                GET /certificates/:id/download - Download certificate PDF
+
+                PATCH /certificates/:id/invalidate - Invalidate certificate (Admin)
+
+                DELETE /certificates/:id - Delete certificate (Admin)
+
+Search Module
+GET /search/courses - Search courses with filters
+
+                GET /search/instructors - Search instructors
+
+                GET /search/filters - Get filter options
+
+                GET /search/suggestions - Get search suggestions
+
+                GET /search/trending - Get trending searches
