@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+// import { AppController } from './app.controller';
+// import { AppService } from './app.service';
 import { RoleModule } from './roles/roles.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
@@ -8,6 +8,10 @@ import { PrismaService } from './prisma/prisma.service';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CoursesModule } from './courses/courses.module';
+import { LessonsModule } from './lessons/lessons.module';
+import { ResourcesModule } from './resources/resources.module';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { CategoriesModule } from './categories/categories.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,6 +23,10 @@ import { CoursesModule } from './courses/courses.module';
     AuthModule,
     PrismaModule,
     CoursesModule,
+    LessonsModule,
+    ResourcesModule,
+    EnrollmentsModule,
+    CategoriesModule,
   ],
   controllers: [],
   providers: [PrismaService],

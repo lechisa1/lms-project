@@ -31,4 +31,84 @@ User Management Endpoints (Protected)
 
         PATCH /users/:id - Update user (Admin only)
 
-        DELETE /users/:id - Delete user (Admin only)        
+        DELETE /users/:id - Delete user (Admin only)      
+
+
+Course Endpoints
+                POST /courses - Create course (Instructor/Admin)
+
+                GET /courses - Get all courses (public: published only, auth: all)
+
+                GET /courses/instructor/:instructorId - Get instructor's courses
+
+                GET /courses/category/:category - Get courses by category
+
+                GET /courses/analytics/:id - Get course analytics (Instructor/Admin)
+
+                GET /courses/:id - Get course details
+
+                PATCH /courses/:id - Update course (Instructor/Admin)
+
+                DELETE /courses/:id - Delete course (Instructor/Admin)
+
+                POST /courses/:id/publish - Publish course (Instructor/Admin)
+
+                POST /courses/:id/unpublish - Unpublish course (Instructor/Admin)
+
+                POST /courses/:id/thumbnail - Upload thumbnail (Instructor/Admin)  
+
+
+Lesson Endpoints
+                POST /courses/:courseId/lessons - Create lesson (Instructor/Admin)
+
+                GET /courses/:courseId/lessons - Get course lessons
+
+                GET /courses/:courseId/lessons/:id - Get lesson details
+
+                PATCH /courses/:courseId/lessons/:id - Update lesson (Instructor/Admin)
+
+                DELETE /courses/:courseId/lessons/:id - Delete lesson (Instructor/Admin)
+
+                POST /courses/:courseId/lessons/reorder - Reorder lessons (Instructor/Admin)
+
+
+
+Resource Endpoints
+                POST /lessons/:lessonId/resources - Upload resource (Instructor/Admin)
+
+                GET /lessons/:lessonId/resources - Get lesson resources
+
+                GET /lessons/:lessonId/resources/:id - Get resource details
+
+                DELETE /lessons/:lessonId/resources/:id - Delete resource (Instructor/Admin)                
+
+
+
+
+
+Enrollment Endpoints
+                POST /enrollments - Enroll in a course (Student only)
+
+                GET /enrollments - Get all enrollments (role-based filtering)
+
+                GET /enrollments/my-enrollments - Get current student's enrollments
+
+                GET /enrollments/student/:studentId - Get enrollments by student (Admin/Instructor)
+
+                GET /enrollments/course/:courseId - Get enrollments by course (Admin/Instructor)
+
+                GET /enrollments/stats - Get enrollment statistics (Admin/Instructor)
+
+                GET /enrollments/student/:studentId/progress-summary - Get student progress summary
+
+                GET /enrollments/:id - Get enrollment details
+
+                GET /enrollments/:id/progress - Get enrollment progress
+
+                POST /enrollments/:id/lessons/:lessonId/complete - Mark lesson as completed
+
+                PATCH /enrollments/:id/progress - Update progress
+
+                PATCH /enrollments/:id/status - Update enrollment status (Admin/Instructor)
+
+                DELETE /enrollments/:id - Delete enrollment (Admin only)
