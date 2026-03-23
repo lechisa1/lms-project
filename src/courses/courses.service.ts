@@ -23,6 +23,11 @@ export class CoursesService {
   ) {}
 
   async create(createCourseDto: CreateCourseDto, instructorId: string) {
+    // Verify categoryId is provided
+    if (!createCourseDto.categoryId) {
+      throw new NotFoundException('Category ID is required');
+    }
+
     // Verify instructor exists
     const instructor = await this.userService.findOne(instructorId);
     if (!instructor) {
@@ -207,6 +212,9 @@ export class CoursesService {
   }
   // Add method to get courses by category
   async getCoursesByCategory(categoryId: string) {
+    if (!categoryId) {
+      throw new NotFoundException('Category ID is required');
+    }
     const category = await this.categoryService.findOne(categoryId);
     if (!category) {
       throw new NotFoundException(`Category with ID ${categoryId} not found`);

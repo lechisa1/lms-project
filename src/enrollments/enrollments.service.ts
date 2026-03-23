@@ -345,4 +345,19 @@ export class EnrollmentsService {
       })),
     };
   }
+
+  async getEnrollmentByCourse(courseId: string, studentId: string) {
+    const enrollment =
+      await this.enrollmentRepository.findOneByStudentAndCourse(
+        studentId,
+        courseId,
+      );
+
+    if (!enrollment) {
+      throw new NotFoundException('Enrollment not found');
+    }
+
+    // Get full enrollment with course and lessons
+    return this.enrollmentRepository.findOne(enrollment.id);
+  }
 }

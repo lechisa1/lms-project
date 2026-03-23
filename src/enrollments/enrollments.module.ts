@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { EnrollmentsController } from './enrollments.controller';
 import { EnrollmentRepository } from './enrollment.repository';
@@ -10,8 +10,10 @@ import { RoleRepository } from '../roles/role.repository';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { RoleModule } from 'src/roles/roles.module';
+import { CertificatesModule } from '../certificates/certificates.module';
+
 @Module({
-  imports: [RoleModule],
+  imports: [RoleModule, forwardRef(() => CertificatesModule)],
   controllers: [EnrollmentsController],
   providers: [
     EnrollmentsService,

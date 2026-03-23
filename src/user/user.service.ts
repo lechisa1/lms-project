@@ -35,11 +35,21 @@ export class UserService {
       );
     }
 
-    return this.userRepository.create(createUserDto);
+    const user = await this.userRepository.create(createUserDto);
+    // Transform role from object to string
+    return {
+      ...user,
+      role: user.role?.name,
+    };
   }
 
   async findAll() {
-    return this.userRepository.findAll();
+    const users = await this.userRepository.findAll();
+    // Transform role from object to string
+    return users.map((user) => ({
+      ...user,
+      role: user.role?.name,
+    }));
   }
 
   async findOne(id: string) {
@@ -47,11 +57,23 @@ export class UserService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return user;
+    // Transform role from object to string
+    return {
+      ...user,
+      role: user.role?.name,
+    };
   }
 
   async findByEmail(email: string) {
-    return this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
+    if (user) {
+      // Transform role from object to string
+      return {
+        ...user,
+        role: user.role?.name,
+      };
+    }
+    return null;
   }
 
   async findByRole(roleId: number) {
@@ -59,7 +81,12 @@ export class UserService {
     if (!role) {
       throw new NotFoundException(`Role with ID ${roleId} not found`);
     }
-    return this.userRepository.findByRole(roleId);
+    const users = await this.userRepository.findByRole(roleId);
+    // Transform role from object to string
+    return users.map((user) => ({
+      ...user,
+      role: user.role?.name,
+    }));
   }
 
   async update(
@@ -69,7 +96,18 @@ export class UserService {
   ) {
     const user = await this.findOne(id);
 
-    // If updating role, check if role exists
+    // If updating role by name (e.g., 'STUDENT'), convert to roleId
+    if (updateUserDto.role) {
+      const role = await this.roleRepository.findByName(updateUserDto.role);
+      if (!role) {
+        throw new NotFoundException(
+          `Role with name '${updateUserDto.role}' not found`,
+        );
+      }
+      updateUserDto.roleId = role.id;
+    }
+
+    // If roleId is provided, verify it exists
     if (updateUserDto.roleId) {
       const role = await this.roleRepository.findOne(updateUserDto.roleId);
       if (!role) {
@@ -89,12 +127,22 @@ export class UserService {
       }
     }
 
-    return this.userRepository.update(id, updateUserDto);
+    const updatedUser = await this.userRepository.update(id, updateUserDto);
+    // Transform role from object to string
+    return {
+      ...updatedUser,
+      role: updatedUser.role?.name,
+    };
   }
 
   async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
     await this.findOne(id);
-    return this.userRepository.update(id, updateProfileDto);
+    const updatedUser = await this.userRepository.update(id, updateProfileDto);
+    // Transform role from object to string
+    return {
+      ...updatedUser,
+      role: updatedUser.role?.name,
+    };
   }
 
   async changePassword(id: string, changePasswordDto: ChangePasswordDto) {

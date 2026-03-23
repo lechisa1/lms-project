@@ -186,20 +186,14 @@ export class EnrollmentRepository {
             lessons: {
               where: { isPublished: true },
               orderBy: { order: 'asc' },
+              include: {
+                resources: true,
+              },
             },
           },
         },
         progress: true,
         lessonProgresses: {
-          include: {
-            lesson: {
-              select: {
-                id: true,
-                title: true,
-                order: true,
-              },
-            },
-          },
           orderBy: {
             lesson: {
               order: 'asc',
@@ -219,6 +213,17 @@ export class EnrollmentRepository {
         },
       },
       include: {
+        course: {
+          include: {
+            lessons: {
+              where: { isPublished: true },
+              orderBy: { order: 'asc' },
+              include: {
+                resources: true,
+              },
+            },
+          },
+        },
         progress: true,
         lessonProgresses: true,
       },
@@ -279,5 +284,83 @@ export class EnrollmentRepository {
 
   async count() {
     return this.prisma.enrollment.count();
+  }
+
+  async getRecentEnrollments(limit: number = 5) {
+    return this.prisma.enrollment.findMany({
+      take: limit,
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        enrolledAt: 'desc',
+      },
+    });
+  }
+
+  async getTopCourses(limit: number = 4) {
+    const coursesWithEnrollments = await this.prisma.course.findMany({
+      include: {
+        _count: {
+          select: {
+            enrollments: true,
+          },
+        },
+      },
+      where: {
+        isPublished: true,
+      },
+    });
+
+    // Sort by enrollment count and take top courses
+    const sorted = coursesWithEnrollments
+      .sort((a, b) => b._count.enrollments - a._count.enrollments)
+      .slice(0, limit);
+
+    // Get course details for each
+    return this.prisma.course.findMany({
+      where: {
+        id: { in: sorted.map((c) => c.id) },
+      },
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        _count: {
+          select: {
+            enrollments: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getCompletionRate() {
+    const total = await this.prisma.enrollment.count();
+    if (total === 0) return 0;
+
+    const completed = await this.prisma.enrollment.count({
+      where: { status: 'COMPLETED' },
+    });
+
+    return Math.round((completed / total) * 100);
   }
 }

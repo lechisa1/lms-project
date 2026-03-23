@@ -17,6 +17,32 @@ class StudentDto {
   avatar?: string;
 }
 
+class LessonDto {
+  @Expose()
+  id: string;
+
+  @Expose()
+  title: string;
+
+  @Expose()
+  order: number;
+
+  @Expose()
+  content?: string;
+
+  @Expose()
+  duration?: number;
+
+  @Expose()
+  resources?: {
+    id: string;
+    title: string;
+    url: string;
+    type: string;
+    fileSize?: number;
+  }[];
+}
+
 class CourseDto {
   @Expose()
   id: string;
@@ -42,6 +68,10 @@ class CourseDto {
     firstName: string;
     lastName: string;
   };
+
+  @Expose()
+  @Type(() => LessonDto)
+  lessons?: LessonDto[];
 }
 
 class ProgressDto {
@@ -56,6 +86,17 @@ class ProgressDto {
 
   @Expose()
   lastAccessedAt?: Date;
+
+  @Expose()
+  completedAt?: Date;
+}
+
+class LessonProgressDto {
+  @Expose()
+  lessonId: string;
+
+  @Expose()
+  completed: boolean;
 
   @Expose()
   completedAt?: Date;
@@ -86,6 +127,10 @@ export class EnrollmentResponseDto {
   @Expose()
   @Type(() => ProgressDto)
   progress?: ProgressDto;
+
+  @Expose()
+  @Type(() => LessonProgressDto)
+  lessonProgresses?: LessonProgressDto[];
 
   @Expose()
   createdAt: Date;

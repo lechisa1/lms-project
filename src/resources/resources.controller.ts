@@ -37,7 +37,16 @@ export class ResourcesController {
     @Body() body: any,
     @Req() req,
   ) {
+    console.log('Create resource request received:', {
+      lessonId,
+      body,
+      hasFile: !!file,
+      contentType: req.headers['content-type'],
+      authorization: req.headers['authorization'] ? 'present' : 'missing',
+    });
+
     if (!file) {
+      console.log('No file received in request');
       throw new BadRequestException('File is required');
     }
 

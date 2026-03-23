@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CertificateRepository } from '../certificates/certificate.repository';
 
 @Injectable()
 export class ProgressRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private certificateRepository?: CertificateRepository,
+  ) {}
 
   async updateLessonProgress(
     enrollmentId: string,
@@ -135,6 +139,51 @@ export class ProgressRepository {
           completedAt: new Date(),
         },
       });
+
+      // Auto-generate certificate when course is completed
+      if (this.certificateRepository) {
+        try {
+          // Check if certificate already exists
+          const existingCertificate = await prismaClient.certificate.findUnique(
+            {
+              where: { enrollmentId },
+            },
+          );
+
+          if (!existingCertificate) {
+            // Generate certificate number
+            const certificateNo =
+              await this.certificateRepository.generateCertificateNumber();
+
+            // Get student info
+            const student = await prismaClient.user.findUnique({
+              where: { id: enrollment.studentId },
+              select: { firstName: true, lastName: true },
+            });
+
+            // Create certificate
+            await prismaClient.certificate.create({
+              data: {
+                studentId: enrollment.studentId,
+                courseId: enrollment.courseId,
+                enrollmentId: enrollment.id,
+                certificateNo,
+                issueDate: new Date(),
+                isValid: true,
+                metadata: {
+                  generatedBy: 'system',
+                  courseCompletionDate: new Date(),
+                  studentName: `${student.firstName} ${student.lastName}`,
+                  courseName: enrollment.course.title,
+                },
+              },
+            });
+          }
+        } catch (error) {
+          // Log error but don't fail the progress update
+          console.error('Error auto-generating certificate:', error);
+        }
+      }
     }
 
     return progressSummary;

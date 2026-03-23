@@ -94,6 +94,15 @@ export class EnrollmentsController {
     );
   }
 
+  @Get('course/:courseId/my-enrollment')
+  @Roles('STUDENT')
+  async getMyEnrollmentByCourse(
+    @Param('courseId') courseId: string,
+    @Req() req,
+  ) {
+    return this.enrollmentService.getEnrollmentByCourse(courseId, req.user.id);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req) {
     return this.enrollmentService.findOne(id, req.user.id, req.user.role);

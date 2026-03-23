@@ -33,6 +33,11 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsInt()
   @IsOptional()
   roleId?: number;
+
+  // Support role name (e.g., 'STUDENT', 'ADMIN', 'INSTRUCTOR') from frontend
+  @IsString()
+  @IsOptional()
+  role?: string;
 }
 
 // For profile updates (restricted fields)

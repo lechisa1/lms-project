@@ -12,6 +12,8 @@ import { CoursesService } from 'src/courses/courses.service';
 import { GenerateCertificateDto } from './dto/create-certificate.dto';
 import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Response } from 'express';
 
 @Injectable()
@@ -272,6 +274,18 @@ export class CertificatesService {
 
         // Add border
         doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40).stroke();
+
+        // Add logo
+        const logoPath = path.join(
+          process.cwd(),
+          'src',
+          'certificates',
+          'lms-logo.png',
+        );
+        const logoBuffer = fs.readFileSync(logoPath);
+        doc.image(logoBuffer, 50, 30, {
+          fit: [80, 80],
+        });
 
         // Add title
         doc

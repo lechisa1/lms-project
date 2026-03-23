@@ -6,7 +6,7 @@ import { UserRepository } from 'src/user/user.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { CoursesService } from 'src/courses/courses.service';
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CertificatesController } from './certificates.controller';
 import { CertificatesService } from './certificates.service';
 import { CertificateRepository } from './certificate.repository';
@@ -15,7 +15,7 @@ import { UserService } from 'src/user/user.service';
 import { CategoriesModule } from 'src/categories/categories.module';
 @Module({
   imports: [
-    EnrollmentsModule,
+    forwardRef(() => EnrollmentsModule),
     RoleModule,
     CoursesModule,
     UserModule,
@@ -30,5 +30,6 @@ import { CategoriesModule } from 'src/categories/categories.module';
     PrismaService,
     UserRepository,
   ],
+  exports: [CertificateRepository],
 })
 export class CertificatesModule {}

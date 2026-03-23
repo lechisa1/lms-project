@@ -45,6 +45,9 @@ export class CategoryRepository {
   }
 
   async findOne(id: string) {
+    if (!id) {
+      return null;
+    }
     return this.prisma.category.findUnique({
       where: { id },
       include: {

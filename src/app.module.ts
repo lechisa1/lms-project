@@ -15,6 +15,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { SearchModule } from './search/search.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,6 +34,7 @@ import { SearchModule } from './search/search.module';
     QuizzesModule,
     CertificatesModule,
     SearchModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [PrismaService],
