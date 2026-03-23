@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CreateQuestionOptionDto {
+export class QuestionOptionDto {
   @IsString()
   @IsNotEmpty()
   text: string;
@@ -44,11 +44,15 @@ export class CreateQuestionDto {
   @Min(0)
   order: number;
 
+  @IsString()
+  @IsOptional()
+  explanation?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateQuestionOptionDto)
+  @Type(() => QuestionOptionDto)
   @IsOptional()
-  options?: CreateQuestionOptionDto[];
+  options?: QuestionOptionDto[];
 }
 
 export class CreateQuestionsBulkDto {

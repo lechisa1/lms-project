@@ -38,6 +38,85 @@ export class DashboardService {
     };
   }
 
+  async getInstructorStats(instructorId: string) {
+    const [totalCourses, enrollments] = await Promise.all([
+      this.courseRepository.findByInstructor(instructorId),
+      this.enrollmentRepository.findByInstructor(instructorId),
+    ]);
+
+    const publishedCourses = totalCourses.filter((c: any) => c.isPublished);
+    const totalStudents = new Set(enrollments.map((e: any) => e.studentId))
+      .size;
+
+    // Calculate average rating from courses (if rating field exists)
+    const coursesWithRating = totalCourses.filter(
+      (c: any) => c.rating && c.rating > 0,
+    );
+    const ratings = coursesWithRating.map((c: any) => c.rating);
+    const avgRating =
+      ratings.length > 0
+        ? parseFloat(
+            (
+              ratings.reduce((a: number, b: number) => a + b, 0) /
+              ratings.length
+            ).toFixed(1),
+          )
+        : 0;
+
+    return {
+      totalCourses: totalCourses.length,
+      publishedCourses: publishedCourses.length,
+      totalStudents,
+      avgRating,
+    };
+  }
+
+  async getInstructorCourses(instructorId: string) {
+    const courses = await this.courseRepository.findByInstructor(instructorId);
+
+    // Get enrollment counts for each course
+    const coursesWithStats = await Promise.all(
+      courses.map(async (course: any) => {
+        const enrollments = await this.enrollmentRepository.findByCourse(
+          course.id,
+        );
+        const publishedEnrollments = enrollments.filter(
+          (e: any) => e.status === 'ACTIVE' || e.status === 'COMPLETED',
+        );
+
+        return {
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          thumbnail: course.thumbnail,
+          isPublished: course.isPublished,
+          createdAt: course.createdAt,
+          studentCount: publishedEnrollments.length,
+          rating: (course as any).rating || 0,
+          lessonCount: course.lessons?.length || 0,
+        };
+      }),
+    );
+
+    return coursesWithStats;
+  }
+
+  async getInstructorRecentStudents(instructorId: string) {
+    const enrollments =
+      await this.enrollmentRepository.getRecentEnrollmentsByInstructor(
+        instructorId,
+        10,
+      );
+
+    return enrollments.map((enrollment) => ({
+      id: enrollment.id,
+      studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+      courseTitle: enrollment.course.title,
+      enrolledAt: enrollment.createdAt,
+      progress: 0, // Will need to calculate from progress records
+    }));
+  }
+
   async getRecentEnrollments(limit: number = 5) {
     return this.enrollmentRepository.getRecentEnrollments(limit);
   }

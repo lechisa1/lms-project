@@ -48,9 +48,29 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   certificates Certificate[]
+  ratings      Rating[]
 
   @@index([email])
   @@index([roleId])
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  rating    Int // 1-5 rating value
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id])
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId]) // One rating per student per course
+  @@index([studentId])
+  @@index([courseId])
 }
 
 model Course {
@@ -61,6 +81,7 @@ model Course {
   duration    Int? // Duration in hours
   thumbnail   String? // URL to course thumbnail
   price       Float?  @default(0)
+  rating      Float?  @default(0) // Average rating
   isPublished Boolean @default(false)
 
   // Relations
@@ -74,6 +95,7 @@ model Course {
   updatedAt    DateTime      @updatedAt
   category     Category?     @relation(fields: [categoryId], references: [id])
   certificates Certificate[]
+  ratings      Rating[]
 
   @@index([instructorId])
   @@index([categoryId])
@@ -214,11 +236,12 @@ model Quiz {
 }
 
 model Question {
-  id     String @id @default(cuid())
-  text   String @db.Text
-  type   String @default("MULTIPLE_CHOICE") // 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER'
-  points Int    @default(1)
-  order  Int
+  id          String  @id @default(cuid())
+  text        String  @db.Text
+  type        String  @default("MULTIPLE_CHOICE") // 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER'
+  points      Int     @default(1)
+  order       Int
+  explanation String? @db.Text // Explanation shown after answering
 
   // Relations
   quizId String

@@ -149,11 +149,12 @@ export class QuizRepository {
   }
 
   async addQuestion(quizId: string, createQuestionDto: CreateQuestionDto) {
-    const { options, ...questionData } = createQuestionDto;
+    const { options, explanation, ...questionData } = createQuestionDto;
 
     return this.prisma.question.create({
       data: {
         ...questionData,
+        explanation,
         quizId,
         options: {
           create: (options || []).map((opt, index) => ({
@@ -172,10 +173,11 @@ export class QuizRepository {
   async addQuestionsBulk(quizId: string, questions: CreateQuestionDto[]) {
     return this.prisma.$transaction(
       questions.map((q) => {
-        const { options, ...questionData } = q;
+        const { options, explanation, ...questionData } = q;
         return this.prisma.question.create({
           data: {
             ...questionData,
+            explanation,
             quizId,
             options: {
               create: options || [],
@@ -186,13 +188,14 @@ export class QuizRepository {
     );
   }
 
-  async updateQuestion(questionId: string, updateData: any) {
-    const { options, ...questionData } = updateData;
+  async updateQuestion(questionId: string, updateData: CreateQuestionDto) {
+    const { options, explanation, ...questionData } = updateData;
 
     return this.prisma.question.update({
       where: { id: questionId },
       data: {
         ...questionData,
+        explanation,
         options: options
           ? {
               deleteMany: {},

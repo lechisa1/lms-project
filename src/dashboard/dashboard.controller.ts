@@ -16,6 +16,25 @@ export class DashboardController {
     return this.dashboardService.getStats();
   }
 
+  // Instructor dashboard endpoints
+  @Get('instructor/stats')
+  @Roles('INSTRUCTOR')
+  async getInstructorStats(@Req() req) {
+    return this.dashboardService.getInstructorStats(req.user.id);
+  }
+
+  @Get('instructor/courses')
+  @Roles('INSTRUCTOR')
+  async getInstructorCourses(@Req() req) {
+    return this.dashboardService.getInstructorCourses(req.user.id);
+  }
+
+  @Get('instructor/recent-students')
+  @Roles('INSTRUCTOR')
+  async getInstructorRecentStudents(@Req() req) {
+    return this.dashboardService.getInstructorRecentStudents(req.user.id);
+  }
+
   @Get('recent-enrollments')
   @Roles('ADMIN', 'INSTRUCTOR')
   async getRecentEnrollments(@Query('limit') limit?: string) {

@@ -188,6 +188,11 @@ export class EnrollmentRepository {
               orderBy: { order: 'asc' },
               include: {
                 resources: true,
+                quizzes: {
+                  include: {
+                    questions: true,
+                  },
+                },
               },
             },
           },
@@ -220,6 +225,11 @@ export class EnrollmentRepository {
               orderBy: { order: 'asc' },
               include: {
                 resources: true,
+                quizzes: {
+                  include: {
+                    questions: true,
+                  },
+                },
               },
             },
           },
@@ -320,6 +330,13 @@ export class EnrollmentRepository {
             enrollments: true,
           },
         },
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
       where: {
         isPublished: true,
@@ -331,24 +348,81 @@ export class EnrollmentRepository {
       .sort((a, b) => b._count.enrollments - a._count.enrollments)
       .slice(0, limit);
 
-    // Get course details for each
-    return this.prisma.course.findMany({
+    return sorted.map((course) => ({
+      id: course.id,
+      title: course.title,
+      instructor: {
+        id: course.instructor.id,
+        firstName: course.instructor.firstName,
+        lastName: course.instructor.lastName,
+      },
+      _count: {
+        enrollments: course._count.enrollments,
+      },
+    }));
+  }
+
+  async findByInstructor(instructorId: string) {
+    return this.prisma.enrollment.findMany({
       where: {
-        id: { in: sorted.map((c) => c.id) },
+        course: {
+          instructorId,
+        },
       },
       include: {
-        instructor: {
+        student: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
+            email: true,
+            avatar: true,
           },
         },
-        _count: {
+        course: {
           select: {
-            enrollments: true,
+            id: true,
+            title: true,
           },
         },
+        progress: true,
+      },
+      orderBy: {
+        enrolledAt: 'desc',
+      },
+    });
+  }
+
+  async getRecentEnrollmentsByInstructor(
+    instructorId: string,
+    limit: number = 5,
+  ) {
+    return this.prisma.enrollment.findMany({
+      where: {
+        course: {
+          instructorId,
+        },
+      },
+      take: limit,
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        enrolledAt: 'desc',
       },
     });
   }
