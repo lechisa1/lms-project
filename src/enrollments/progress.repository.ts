@@ -9,6 +9,46 @@ export class ProgressRepository {
     private certificateRepository?: CertificateRepository,
   ) {}
 
+  private async checkAllQuizzesPassed(
+    courseId: string,
+    studentId: string,
+  ): Promise<boolean> {
+    // Get all published quizzes for the course (through lessons)
+    const quizzes = await this.prisma.quiz.findMany({
+      where: {
+        lesson: {
+          courseId,
+          isPublished: true,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (quizzes.length === 0) {
+      // If there are no quizzes, consider it passed
+      return true;
+    }
+
+    // Check if student has passed each quiz
+    for (const quiz of quizzes) {
+      const passedAttempt = await this.prisma.quizAttempt.findFirst({
+        where: {
+          quizId: quiz.id,
+          studentId,
+          passed: true,
+        },
+      });
+
+      if (!passedAttempt) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   async updateLessonProgress(
     enrollmentId: string,
     studentId: string,
@@ -132,6 +172,17 @@ export class ProgressRepository {
 
     // If progress is 100%, update enrollment status
     if (progressPercent === 100 && enrollment.status !== 'COMPLETED') {
+      // Check if all quizzes are passed before marking as COMPLETED
+      const allQuizzesPassed = await this.checkAllQuizzesPassed(
+        enrollment.courseId,
+        enrollment.studentId,
+      );
+
+      if (!allQuizzesPassed) {
+        // Don't mark as completed yet - quizzes must be passed first
+        return progressSummary;
+      }
+
       await prismaClient.enrollment.update({
         where: { id: enrollmentId },
         data: {

@@ -55,4 +55,39 @@ export class DashboardController {
   async getStudentDashboard(@Req() req) {
     return this.dashboardService.getStudentDashboard(req.user.id);
   }
+
+  // Admin Reports endpoints
+  @Get('reports/enrollments')
+  @Roles('ADMIN')
+  async getEnrollmentReport(@Query('days') days?: string) {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.dashboardService.getEnrollmentReport(daysNum);
+  }
+
+  @Get('reports/courses')
+  @Roles('ADMIN')
+  async getCourseReport() {
+    return this.dashboardService.getCourseReport();
+  }
+
+  @Get('reports/users')
+  @Roles('ADMIN')
+  async getUserReport(@Query('days') days?: string) {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.dashboardService.getUserReport(daysNum);
+  }
+
+  @Get('reports/certificates')
+  @Roles('ADMIN')
+  async getCertificateReport(@Query('days') days?: string) {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.dashboardService.getCertificateReport(daysNum);
+  }
+
+  @Get('reports/revenue')
+  @Roles('ADMIN')
+  async getRevenueReport(@Query('days') days?: string) {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.dashboardService.getRevenueReport(daysNum);
+  }
 }

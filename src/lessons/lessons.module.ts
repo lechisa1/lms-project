@@ -6,8 +6,10 @@ import { LessonRepository } from './lesson.repository';
 import { CourseRepository } from '../courses/course.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleModule } from 'src/roles/roles.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
-  imports: [RoleModule],
+  imports: [RoleModule, NotificationsModule],
   controllers: [LessonsController],
   providers: [
     LessonsService,

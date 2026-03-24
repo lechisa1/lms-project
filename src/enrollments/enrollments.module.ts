@@ -11,9 +11,14 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { RoleModule } from 'src/roles/roles.module';
 import { CertificatesModule } from '../certificates/certificates.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [RoleModule, forwardRef(() => CertificatesModule)],
+  imports: [
+    RoleModule,
+    forwardRef(() => CertificatesModule),
+    NotificationsModule,
+  ],
   controllers: [EnrollmentsController],
   providers: [
     EnrollmentsService,

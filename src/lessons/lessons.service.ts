@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { LessonRepository } from './lesson.repository';
 import { CourseRepository } from '../courses/course.repository';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 
@@ -13,6 +14,7 @@ export class LessonsService {
   constructor(
     private lessonRepository: LessonRepository,
     private courseRepository: CourseRepository,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -39,11 +41,41 @@ export class LessonsService {
       await this.shiftLessonOrders(courseId, createLessonDto.order);
     }
 
-    return this.lessonRepository.create(
+    const lesson = await this.lessonRepository.create(
       createLessonDto,
       courseId,
       instructorId,
     );
+
+    // If lesson is published, notify enrolled students
+    if (
+      lesson.isPublished &&
+      course.enrollments &&
+      course.enrollments.length > 0
+    ) {
+      const enrolledStudentIds = course.enrollments
+        .filter((e) => e.status === 'ACTIVE')
+        .map((e) => e.studentId);
+
+      if (enrolledStudentIds.length > 0) {
+        await this.notificationsService.createBulkNotifications(
+          enrolledStudentIds,
+          {
+            title: 'New Lesson Available',
+            message: `A new lesson "${lesson.title}" has been added to "${course.title}". Start learning now!`,
+            type: 'LESSON',
+            metadata: {
+              lessonId: lesson.id,
+              lessonTitle: lesson.title,
+              courseId: course.id,
+              courseTitle: course.title,
+            },
+          },
+        );
+      }
+    }
+
+    return lesson;
   }
 
   async findAll(courseId: string, user?: any) {

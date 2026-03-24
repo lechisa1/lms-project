@@ -9,6 +9,8 @@ import { CertificateRepository } from './certificate.repository';
 import { EnrollmentRepository } from '../enrollments/enrollment.repository';
 import { UserService } from 'src/user/user.service';
 import { CoursesService } from 'src/courses/courses.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { GenerateCertificateDto } from './dto/create-certificate.dto';
 import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
@@ -23,6 +25,8 @@ export class CertificatesService {
     private enrollmentRepository: EnrollmentRepository,
     private userService: UserService,
     private courseService: CoursesService,
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async generateCertificate(
@@ -66,6 +70,28 @@ export class CertificatesService {
       );
     }
 
+    // Check if all lessons are completed
+    const allLessonsCompleted = await this.checkAllLessonsCompleted(
+      enrollment.courseId,
+      enrollment.studentId,
+    );
+    if (!allLessonsCompleted) {
+      throw new ConflictException(
+        'All lessons must be completed to generate certificate',
+      );
+    }
+
+    // Check if all quizzes are passed
+    const allQuizzesPassed = await this.checkAllQuizzesPassed(
+      enrollment.courseId,
+      enrollment.studentId,
+    );
+    if (!allQuizzesPassed) {
+      throw new ConflictException(
+        'All quizzes must be passed to generate certificate',
+      );
+    }
+
     // Check if certificate already exists
     const existingCertificate =
       await this.certificateRepository.findByEnrollment(enrollment.id);
@@ -88,6 +114,35 @@ export class CertificatesService {
         courseCompletionDate: enrollment.completedAt,
         studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
         courseName: enrollment.course.title,
+      },
+    });
+
+    // Send notification to student about certificate
+    await this.notificationsService.createNotification({
+      userId: enrollment.studentId,
+      title: 'Certificate Earned!',
+      message: `Congratulations! You have earned a certificate for completing "${enrollment.course.title}".`,
+      type: 'CERTIFICATE',
+      metadata: {
+        certificateId: certificate.id,
+        certificateNo: certificate.certificateNo,
+        courseId: enrollment.courseId,
+        courseTitle: enrollment.course.title,
+      },
+    });
+
+    // Notify instructor about student certificate
+    await this.notificationsService.createNotification({
+      userId: enrollment.course.instructorId,
+      title: 'Student Completed Course',
+      message: `${enrollment.student.firstName} ${enrollment.student.lastName} has completed your course "${enrollment.course.title}" and earned a certificate.`,
+      type: 'CERTIFICATE',
+      metadata: {
+        certificateId: certificate.id,
+        studentId: enrollment.studentId,
+        studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+        courseId: enrollment.courseId,
+        courseTitle: enrollment.course.title,
       },
     });
 
@@ -258,6 +313,114 @@ export class CertificatesService {
         certificates: certificates.slice(0, 5),
       };
     }
+  }
+
+  private async checkAllLessonsCompleted(
+    courseId: string,
+    studentId: string,
+  ): Promise<boolean> {
+    // Get all published lessons for the course
+    const totalLessons = await this.prisma.lesson.count({
+      where: {
+        courseId,
+        isPublished: true,
+      },
+    });
+
+    if (totalLessons === 0) {
+      // If there are no lessons, consider it completed
+      return true;
+    }
+
+    // Get completed lessons count
+    const completedLessons = await this.prisma.lessonProgress.count({
+      where: {
+        studentId,
+        lesson: {
+          courseId,
+          isPublished: true,
+        },
+        completed: true,
+      },
+    });
+
+    return completedLessons >= totalLessons;
+  }
+
+  private async checkAllQuizzesPassed(
+    courseId: string,
+    studentId: string,
+  ): Promise<boolean> {
+    // Get all published quizzes for the course (through lessons)
+    const quizzes = await this.prisma.quiz.findMany({
+      where: {
+        lesson: {
+          courseId,
+          isPublished: true,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (quizzes.length === 0) {
+      // If there are no quizzes, consider it passed
+      return true;
+    }
+
+    // Check if student has passed each quiz
+    for (const quiz of quizzes) {
+      const passedAttempt = await this.prisma.quizAttempt.findFirst({
+        where: {
+          quizId: quiz.id,
+          studentId,
+          passed: true,
+        },
+      });
+
+      if (!passedAttempt) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async checkEligibilityForCertificate(
+    courseId: string,
+    studentId: string,
+  ): Promise<{
+    eligible: boolean;
+    lessonsCompleted: boolean;
+    quizzesPassed: boolean;
+    message: string;
+  }> {
+    const lessonsCompleted = await this.checkAllLessonsCompleted(
+      courseId,
+      studentId,
+    );
+    const quizzesPassed = await this.checkAllQuizzesPassed(courseId, studentId);
+
+    const eligible = lessonsCompleted && quizzesPassed;
+
+    let message = '';
+    if (!eligible) {
+      if (!lessonsCompleted) {
+        message = 'All lessons must be completed';
+      } else if (!quizzesPassed) {
+        message = 'All quizzes must be passed';
+      }
+    } else {
+      message = 'Eligible for certificate';
+    }
+
+    return {
+      eligible,
+      lessonsCompleted,
+      quizzesPassed,
+      message,
+    };
   }
 
   private async generateCertificatePDF(certificate: any): Promise<Buffer> {

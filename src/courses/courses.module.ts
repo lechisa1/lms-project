@@ -10,9 +10,10 @@ import { RoleRepository } from '../roles/role.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleModule } from 'src/roles/roles.module';
 import { CategoriesModule } from 'src/categories/categories.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [RoleModule, CategoriesModule],
+  imports: [RoleModule, CategoriesModule, NotificationsModule],
   controllers: [CoursesController],
   providers: [
     CoursesService,

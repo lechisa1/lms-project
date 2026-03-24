@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CourseRepository } from './course.repository';
 import { LessonRepository } from '../lessons/lesson.repository';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { UserService } from 'src/user/user.service';
@@ -20,6 +21,7 @@ export class CoursesService {
     private lessonRepository: LessonRepository,
     private userService: UserService,
     private categoryService: CategoriesService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createCourseDto: CreateCourseDto, instructorId: string) {
@@ -143,7 +145,21 @@ export class CoursesService {
       throw new ConflictException('Cannot publish course without lessons');
     }
 
-    return this.courseRepository.publish(id);
+    const publishedCourse = await this.courseRepository.publish(id);
+
+    // Notify instructor about successful publish
+    await this.notificationsService.createNotification({
+      userId: course.instructorId,
+      title: 'Course Published',
+      message: `Your course "${course.title}" has been successfully published and is now available for students to enroll.`,
+      type: 'COURSE',
+      metadata: {
+        courseId: course.id,
+        courseTitle: course.title,
+      },
+    });
+
+    return publishedCourse;
   }
 
   async unpublish(id: string, userId: string, userRole: string) {

@@ -290,4 +290,433 @@ export class DashboardService {
 
     return streak;
   }
+
+  // ============ ADMIN REPORTS ============
+
+  async getEnrollmentReport(days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get enrollments in date range
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        status: true,
+      },
+    });
+
+    // Group by date
+    const enrollmentsByDate: Record<
+      string,
+      { total: number; completed: number; active: number }
+    > = {};
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      enrollmentsByDate[dateStr] = { total: 0, completed: 0, active: 0 };
+    }
+
+    enrollments.forEach((enrollment) => {
+      const dateStr = enrollment.createdAt.toISOString().split('T')[0];
+      if (enrollmentsByDate[dateStr]) {
+        enrollmentsByDate[dateStr].total++;
+        if (enrollment.status === 'COMPLETED') {
+          enrollmentsByDate[dateStr].completed++;
+        } else if (
+          enrollment.status === 'ACTIVE' ||
+          enrollment.status === 'IN_PROGRESS'
+        ) {
+          enrollmentsByDate[dateStr].active++;
+        }
+      }
+    });
+
+    // Convert to array sorted by date
+    const trend = Object.entries(enrollmentsByDate)
+      .map(([date, data]) => ({
+        date,
+        total: data.total,
+        completed: data.completed,
+        active: data.active,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Summary stats
+    const totalEnrollments = enrollments.length;
+    const completedEnrollments = enrollments.filter(
+      (e) => e.status === 'COMPLETED',
+    ).length;
+    const activeEnrollments = enrollments.filter(
+      (e) => e.status === 'ACTIVE' || e.status === 'IN_PROGRESS',
+    ).length;
+
+    return {
+      summary: {
+        totalEnrollments,
+        completedEnrollments,
+        activeEnrollments,
+        completionRate:
+          totalEnrollments > 0
+            ? Math.round((completedEnrollments / totalEnrollments) * 100)
+            : 0,
+      },
+      trend,
+    };
+  }
+
+  async getCourseReport() {
+    // Get all published courses with enrollment stats
+    const courses = await this.prisma.course.findMany({
+      where: {
+        isPublished: true,
+      },
+      include: {
+        instructor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        category: true,
+        enrollments: true,
+      },
+    });
+
+    // Get course progress data
+    const courseStats = await Promise.all(
+      courses.map(async (course) => {
+        const totalStudents = course.enrollments.length;
+        const completedStudents = course.enrollments.filter(
+          (e) => e.status === 'COMPLETED',
+        ).length;
+        const activeStudents = course.enrollments.filter(
+          (e) => e.status === 'ACTIVE' || e.status === 'IN_PROGRESS',
+        ).length;
+
+        // Get average progress for this course using ProgressSummary
+        const progressRecords = await this.prisma.progressSummary.findMany({
+          where: {
+            enrollment: {
+              courseId: course.id,
+            },
+          },
+        });
+
+        const avgProgress =
+          progressRecords.length > 0
+            ? Math.round(
+                progressRecords.reduce((acc, p) => acc + p.progressPercent, 0) /
+                  progressRecords.length,
+              )
+            : 0;
+
+        return {
+          id: course.id,
+          title: course.title,
+          instructor: course.instructor
+            ? `${course.instructor.firstName} ${course.instructor.lastName}`
+            : 'Unknown',
+          category: course.category?.name || 'Uncategorized',
+          totalStudents,
+          completedStudents,
+          activeStudents,
+          completionRate:
+            totalStudents > 0
+              ? Math.round((completedStudents / totalStudents) * 100)
+              : 0,
+          avgProgress,
+          rating: (course as any).rating || 0,
+        };
+      }),
+    );
+
+    // Sort by total students
+    courseStats.sort((a, b) => b.totalStudents - a.totalStudents);
+
+    const summary = {
+      totalCourses: courses.length,
+      totalStudents: courseStats.reduce((acc, c) => acc + c.totalStudents, 0),
+      totalCompletions: courseStats.reduce(
+        (acc, c) => acc + c.completedStudents,
+        0,
+      ),
+      avgCompletionRate:
+        courseStats.length > 0
+          ? Math.round(
+              courseStats.reduce((acc, c) => acc + c.completionRate, 0) /
+                courseStats.length,
+            )
+          : 0,
+    };
+
+    return {
+      summary,
+      courses: courseStats,
+    };
+  }
+
+  async getUserReport(days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get roles
+    const studentRole = await this.prisma.role.findFirst({
+      where: { name: 'STUDENT' },
+    });
+    const instructorRole = await this.prisma.role.findFirst({
+      where: { name: 'INSTRUCTOR' },
+    });
+    const adminRole = await this.prisma.role.findFirst({
+      where: { name: 'ADMIN' },
+    });
+
+    // Get users by role
+    const [students, instructors, admins] = await Promise.all([
+      this.prisma.user.count({ where: { roleId: studentRole?.id } }),
+      this.prisma.user.count({ where: { roleId: instructorRole?.id } }),
+      this.prisma.user.count({ where: { roleId: adminRole?.id } }),
+    ]);
+
+    // Get new users in date range
+    const newUsers = await this.prisma.user.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        role: true,
+      },
+    });
+
+    // Group by date
+    const usersByDate: Record<
+      string,
+      { students: number; instructors: number; admins: number }
+    > = {};
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      usersByDate[dateStr] = { students: 0, instructors: 0, admins: 0 };
+    }
+
+    newUsers.forEach((user) => {
+      const dateStr = user.createdAt.toISOString().split('T')[0];
+      if (usersByDate[dateStr]) {
+        if (user.role.name === 'STUDENT') usersByDate[dateStr].students++;
+        else if (user.role.name === 'INSTRUCTOR')
+          usersByDate[dateStr].instructors++;
+        else if (user.role.name === 'ADMIN') usersByDate[dateStr].admins++;
+      }
+    });
+
+    // Convert to array sorted by date
+    const trend = Object.entries(usersByDate)
+      .map(([date, data]) => ({
+        date,
+        students: data.students,
+        instructors: data.instructors,
+        admins: data.admins,
+        total: data.students + data.instructors + data.admins,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Get active users (users who logged in recently)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const activeUsers = await this.prisma.user.count({
+      where: {
+        lastLoginAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+    });
+
+    return {
+      summary: {
+        totalUsers: students + instructors + admins,
+        totalStudents: students,
+        totalInstructors: instructors,
+        totalAdmins: admins,
+        newUsers: newUsers.length,
+        activeUsers,
+      },
+      trend,
+    };
+  }
+
+  async getCertificateReport(days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get certificates in date range
+    const certificates = await this.prisma.certificate.findMany({
+      where: {
+        issueDate: {
+          gte: startDate,
+        },
+      },
+      include: {
+        student: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        course: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    // Group by date
+    const certsByDate: Record<string, number> = {};
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      certsByDate[dateStr] = 0;
+    }
+
+    certificates.forEach((cert) => {
+      const dateStr = cert.issueDate.toISOString().split('T')[0];
+      if (certsByDate[dateStr]) {
+        certsByDate[dateStr]++;
+      }
+    });
+
+    const trend = Object.entries(certsByDate)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Get total certificates
+    const totalCertificates = await this.prisma.certificate.count();
+
+    // Get top courses by certificates
+    const courseCertCounts = await this.prisma.certificate.groupBy({
+      by: ['courseId'],
+      _count: true,
+      orderBy: {
+        _count: {
+          courseId: 'desc',
+        },
+      },
+      take: 5,
+    });
+
+    const topCourses = await Promise.all(
+      courseCertCounts.map(async (item) => {
+        const course = await this.prisma.course.findUnique({
+          where: { id: item.courseId },
+          select: { title: true },
+        });
+        return {
+          courseId: item.courseId,
+          courseTitle: course?.title || 'Unknown',
+          certificateCount: item._count,
+        };
+      }),
+    );
+
+    return {
+      summary: {
+        totalCertificates,
+        certificatesIssued: certificates.length,
+        certificatesThisMonth: certificates.length,
+      },
+      trend,
+      topCourses,
+    };
+  }
+
+  async getRevenueReport(days: number = 30) {
+    // This is a simplified revenue report - in a real app, you'd have payment data
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get enrollments with course prices
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      include: {
+        course: {
+          select: {
+            price: true,
+          },
+        },
+      },
+    });
+
+    // Group by date
+    const revenueByDate: Record<string, number> = {};
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      revenueByDate[dateStr] = 0;
+    }
+
+    let totalRevenue = 0;
+    enrollments.forEach((enrollment) => {
+      const price = enrollment.course.price || 0;
+      totalRevenue += price;
+      const dateStr = enrollment.createdAt.toISOString().split('T')[0];
+      if (revenueByDate[dateStr]) {
+        revenueByDate[dateStr] += price;
+      }
+    });
+
+    const trend = Object.entries(revenueByDate)
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Get all-time revenue
+    const allEnrollments = await this.prisma.enrollment.findMany({
+      include: {
+        course: {
+          select: {
+            price: true,
+          },
+        },
+      },
+    });
+
+    const allTimeRevenue = allEnrollments.reduce(
+      (acc, e) => acc + (e.course.price || 0),
+      0,
+    );
+
+    return {
+      summary: {
+        totalRevenue,
+        allTimeRevenue,
+        totalEnrollments: enrollments.length,
+        avgRevenuePerEnrollment:
+          enrollments.length > 0
+            ? Math.round(totalRevenue / enrollments.length)
+            : 0,
+      },
+      trend,
+    };
+  }
 }

@@ -42,6 +42,15 @@ export class CertificatesController {
     );
   }
 
+  @Get('eligibility/:courseId')
+  @Roles('STUDENT')
+  async checkEligibility(@Param('courseId') courseId: string, @Req() req) {
+    return this.certificateService.checkEligibilityForCertificate(
+      courseId,
+      req.user.id,
+    );
+  }
+
   @Get()
   @Serialize(CertificateListResponseDto)
   async findAll(@Req() req) {

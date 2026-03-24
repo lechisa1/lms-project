@@ -13,6 +13,8 @@ import { CertificateRepository } from './certificate.repository';
 import { EnrollmentsModule } from 'src/enrollments/enrollments.module';
 import { UserService } from 'src/user/user.service';
 import { CategoriesModule } from 'src/categories/categories.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
   imports: [
     forwardRef(() => EnrollmentsModule),
@@ -20,6 +22,7 @@ import { CategoriesModule } from 'src/categories/categories.module';
     CoursesModule,
     UserModule,
     CategoriesModule,
+    NotificationsModule,
   ],
   controllers: [CertificatesController],
   providers: [

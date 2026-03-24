@@ -17,6 +17,8 @@ import { CertificatesModule } from './certificates/certificates.module';
 import { SearchModule } from './search/search.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { RatingsModule } from './ratings/ratings.module';
+import { NotificationsModule } from './notifications/notifications.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -37,6 +39,7 @@ import { RatingsModule } from './ratings/ratings.module';
     SearchModule,
     DashboardModule,
     RatingsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [PrismaService],
